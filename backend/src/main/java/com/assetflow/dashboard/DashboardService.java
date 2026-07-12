@@ -1,6 +1,5 @@
 package com.assetflow.dashboard;
 
-import com.assetflow.activitylog.ActivityLogService;
 import com.assetflow.dashboard.dto.DashboardKpiResponse;
 import com.assetflow.dashboard.dto.DashboardResponse;
 import com.assetflow.dashboard.gateway.AllocationDashboardGateway;
@@ -18,11 +17,11 @@ public class DashboardService {
     private final AllocationDashboardGateway allocationGateway;
     private final BookingDashboardGateway bookingGateway;
     private final MaintenanceDashboardGateway maintenanceGateway;
+
     public DashboardService(AssetDashboardGateway assetGateway,
                             AllocationDashboardGateway allocationGateway,
                             BookingDashboardGateway bookingGateway,
-                            MaintenanceDashboardGateway maintenanceGateway,
-                            ActivityLogService activityLogService) {
+                            MaintenanceDashboardGateway maintenanceGateway) {
         this.assetGateway = assetGateway;
         this.allocationGateway = allocationGateway;
         this.bookingGateway = bookingGateway;
