@@ -7,8 +7,11 @@ import com.assetflow.report.dto.DepartmentAllocationReport;
 import com.assetflow.report.dto.MaintenanceFrequencyReport;
 import com.assetflow.report.dto.OverdueAllocationReport;
 import com.assetflow.report.dto.ResourceUtilizationReport;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Validated
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -59,22 +63,22 @@ public class ReportController {
     }
 
     @GetMapping(value = "/{reportName}/export", produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> exportCsv(@PathVariable String reportName, @RequestParam String format) {
-        if (!"CSV".equalsIgnoreCase(format)) {
-            return ResponseEntity.badRequest().body("Unsupported format");
+    public ResponseEntity<String> exportCsv(
+            @PathVariable @NotBlank String reportName,
+            @RequestParam @NotBlank @Pattern(regexp = "(?i)csv", message = "Only CSV export is supported") String format) {
+        String csv;
+
+        switch (reportName) {
+            case "department-allocation" -> csv = toCsv(service.getDepartmentAllocationReport(), "departmentId,allocatedAssets,availableAssets");
+            case "assets-by-status" -> csv = toCsv(service.getAssetStatusReport(), "status,count");
+            case "maintenance-frequency" -> csv = toCsv(service.getMaintenanceFrequencyReport(), "maintenanceRequestId,assetName,maintenanceCount");
+            case "resource-utilization" -> csv = toCsv(service.getResourceUtilizationReport(), "resourceType,usedCount,totalCount");
+            case "overdue-allocations" -> csv = toCsv(service.getOverdueAllocationReport(), "allocationId,assetId,employeeId,dueDate,status");
+            case "audit-discrepancies" -> csv = toCsv(service.getAuditDiscrepancyReport(), "discrepancyId,auditCycleId,auditItemId,assetId,discrepancyType,status");
+            default -> csv = "";
         }
 
-        String csv = switch (reportName) {
-            case "department-allocation" -> toCsv(service.getDepartmentAllocationReport(), "departmentId,allocatedAssets,availableAssets");
-            case "assets-by-status" -> toCsv(service.getAssetStatusReport(), "status,count");
-            case "maintenance-frequency" -> toCsv(service.getMaintenanceFrequencyReport(), "maintenanceRequestId,assetName,maintenanceCount");
-            case "resource-utilization" -> toCsv(service.getResourceUtilizationReport(), "resourceType,usedCount,totalCount");
-            case "overdue-allocations" -> toCsv(service.getOverdueAllocationReport(), "allocationId,assetId,employeeId,dueDate,status");
-            case "audit-discrepancies" -> toCsv(service.getAuditDiscrepancyReport(), "discrepancyId,auditCycleId,auditItemId,assetId,discrepancyType,status");
-            default -> null;
-        };
-
-        if (csv == null) {
+        if (csv.isBlank()) {
             return ResponseEntity.badRequest().body("Unknown report name");
         }
         return ResponseEntity.ok(csv);
@@ -83,10 +87,14 @@ public class ReportController {
     private String toCsv(List<?> rows, String header) {
         StringBuilder builder = new StringBuilder();
         builder.append(header).append("\n");
-        for (Object row : rows) {
+        for (Object row : safeList(rows)) {
             builder.append(serializeRow(row)).append("\n");
         }
         return builder.toString();
+    }
+
+    private <T> List<T> safeList(List<T> list) {
+        return list == null ? List.of() : list;
     }
 
     private String serializeRow(Object row) {
