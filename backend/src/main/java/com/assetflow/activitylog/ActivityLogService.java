@@ -1,11 +1,12 @@
 package com.assetflow.activitylog;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 public class ActivityLogService {
@@ -28,7 +29,7 @@ public class ActivityLogService {
         repository.save(log);
     }
 
-    public List<ActivityLog> search(Specification<ActivityLog> specification) {
-        return repository.findAll(specification);
+    public Page<ActivityLog> search(Specification<ActivityLog> specification, Pageable pageable) {
+        return repository.findAll(specification, pageable);
     }
 }
