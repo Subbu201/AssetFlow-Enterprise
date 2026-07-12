@@ -243,7 +243,7 @@ public class AuditService {
         long missing = itemRepository.countByAuditCycleIdAndVerificationStatus(auditId, AuditVerificationStatus.MISSING);
         long damaged = itemRepository.countByAuditCycleIdAndVerificationStatus(auditId, AuditVerificationStatus.DAMAGED);
         long pending = itemRepository.countByAuditCycleIdAndVerificationStatusIsNull(auditId);
-        long discrepancies = discrepancyRepository.countByAuditCycleIdAndStatus("OPEN");
+        long discrepancies = discrepancyRepository.countByAuditCycleIdAndStatus(auditId, "OPEN");
         return AuditSummaryResponse.builder()
                 .auditCycleId(auditId)
                 .totalItems(total)
@@ -262,7 +262,7 @@ public class AuditService {
         long missing = itemRepository.countByAuditCycleIdAndVerificationStatus(auditId, AuditVerificationStatus.MISSING);
         long damaged = itemRepository.countByAuditCycleIdAndVerificationStatus(auditId, AuditVerificationStatus.DAMAGED);
         long pending = itemRepository.countByAuditCycleIdAndVerificationStatusIsNull(auditId);
-        long discrepancies = discrepancyRepository.countByAuditCycleIdAndStatus("OPEN");
+        long discrepancies = discrepancyRepository.countByAuditCycleIdAndStatus(auditId, "OPEN");
         int completion = total == 0 ? 0 : (int) Math.round((verified + missing + damaged) * 100.0 / total);
         if (completion > 100) {
             completion = 100;

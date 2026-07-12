@@ -1,7 +1,5 @@
 package com.assetflow.notification;
 
-import com.assetflow.common.Role;
-import com.assetflow.exception.BadRequestException;
 import com.assetflow.exception.ForbiddenException;
 import com.assetflow.exception.ResourceNotFoundException;
 import com.assetflow.notification.dto.CreateNotificationRequest;

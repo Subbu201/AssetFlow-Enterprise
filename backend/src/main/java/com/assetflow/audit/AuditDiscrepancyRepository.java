@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface AuditDiscrepancyRepository extends JpaRepository<AuditDiscrepancy, Long> {
     List<AuditDiscrepancy> findByAuditCycleId(Long auditCycleId);
-    long countByAuditCycleIdAndStatus(String status);
+    long countByAuditCycleIdAndStatus(Long auditCycleId, String status);
 }
