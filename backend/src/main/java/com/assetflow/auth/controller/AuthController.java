@@ -39,4 +39,20 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Password has been reset successfully.", null));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(org.springframework.security.core.Authentication authentication) {
+        com.assetflow.security.jwt.CustomUserDetails userDetails = (com.assetflow.security.jwt.CustomUserDetails) authentication.getPrincipal();
+        com.assetflow.auth.entity.UserAccount user = userDetails.getUserAccount();
+        
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .build();
+                
+        return ResponseEntity.ok(ApiResponse.success("Current user fetched successfully", response));
+    }
 }
