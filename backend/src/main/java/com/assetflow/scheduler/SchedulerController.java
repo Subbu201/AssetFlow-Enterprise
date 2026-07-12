@@ -6,9 +6,12 @@ import com.assetflow.common.Role;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/jobs")
@@ -18,6 +21,12 @@ public class SchedulerController {
 
     public SchedulerController(SchedulerService schedulerService) {
         this.schedulerService = schedulerService;
+    }
+
+    @GetMapping("/schedules")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getJobSchedules() {
+        requireAdmin();
+        return ResponseEntity.ok(ApiResponse.success("Scheduler cron expressions returned", schedulerService.getJobSchedules()));
     }
 
     @PostMapping("/overdue/run")
