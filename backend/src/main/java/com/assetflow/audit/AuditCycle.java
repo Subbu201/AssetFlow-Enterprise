@@ -3,8 +3,6 @@ package com.assetflow.audit;
 import com.assetflow.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.Getter;

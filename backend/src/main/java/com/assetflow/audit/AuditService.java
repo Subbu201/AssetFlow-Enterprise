@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,15 +55,25 @@ public class AuditService {
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new BadRequestException("startDate must not be after endDate");
         }
+        if (request.getScopeType() == null || request.getScopeType().isBlank()) {
+            throw new BadRequestException("scopeType is required");
+        }
+        if (cycleRepository.findByAuditCode(request.getAuditCode()).isPresent()) {
+            throw new BadRequestException("Audit code already exists");
+        }
+        String scopeType = request.getScopeType().trim().toUpperCase();
+        if (AuditScopeType.fromString(scopeType) == null) {
+            throw new BadRequestException("Unsupported scope type");
+        }
         AuditCycle cycle = new AuditCycle();
         cycle.setAuditCode(request.getAuditCode());
         cycle.setName(request.getName());
-        cycle.setScopeType(request.getScopeType());
+        cycle.setScopeType(scopeType);
         cycle.setDepartmentId(request.getDepartmentId());
         cycle.setLocation(request.getLocation());
         cycle.setStartDate(request.getStartDate());
         cycle.setEndDate(request.getEndDate());
-        cycle.setStatus("DRAFT");
+        cycle.setStatus(AuditStatus.DRAFT.name());
         cycle.setCreatedByUserId(Long.parseLong(auth.getName()));
         AuditCycle saved = cycleRepository.save(cycle);
         activityLogService.log(getUserId(auth), "AUDIT_CREATED", "AuditCycle", saved.getId(), "Audit cycle created");
@@ -107,13 +116,19 @@ public class AuditService {
         requireRole(auth, Role.ADMIN);
         AuditCycle cycle = findCycle(auditId);
         ensureNotClosed(cycle);
-        if (!cycle.getStatus().equals("DRAFT") && !cycle.getStatus().equals("SCHEDULED")) {
+        if (!cycle.getStatus().equals(AuditStatus.DRAFT.name()) && !cycle.getStatus().equals(AuditStatus.SCHEDULED.name())) {
             throw new ConflictException("Audit cannot be started from status " + cycle.getStatus());
         }
-        List<AuditAssetSnapshot> assets = switch (cycle.getScopeType()) {
-            case "DEPARTMENT" -> assetAuditGateway.findAssetsByDepartment(cycle.getDepartmentId());
-            case "LOCATION" -> assetAuditGateway.findAssetsByLocation(cycle.getLocation());
-            default -> throw new BadRequestException("Unsupported scope type");
+        if (itemRepository.existsByAuditCycleId(auditId)) {
+            throw new ConflictException("Audit items have already been generated");
+        }
+        AuditScopeType scopeType = AuditScopeType.fromString(cycle.getScopeType());
+        if (scopeType == null) {
+            throw new BadRequestException("Unsupported scope type");
+        }
+        List<AuditAssetSnapshot> assets = switch (scopeType) {
+            case DEPARTMENT -> assetAuditGateway.findAssetsByDepartment(cycle.getDepartmentId());
+            case LOCATION -> assetAuditGateway.findAssetsByLocation(cycle.getLocation());
         };
         List<AuditItem> items = assets.stream().map(snapshot -> {
             AuditItem item = new AuditItem();
@@ -125,7 +140,7 @@ public class AuditService {
             return item;
         }).collect(Collectors.toList());
         itemRepository.saveAll(items);
-        cycle.setStatus("IN_PROGRESS");
+        cycle.setStatus(AuditStatus.IN_PROGRESS.name());
         cycleRepository.save(cycle);
         activityLogService.log(getUserId(auth), "AUDIT_STARTED", "AuditCycle", auditId, "Audit started with " + items.size() + " items");
     }
@@ -157,11 +172,13 @@ public class AuditService {
         item.setVerifiedAt(LocalDateTime.now());
         itemRepository.save(item);
         if (request.getVerificationStatus() == AuditVerificationStatus.MISSING) {
-            createDiscrepancy(cycle, item, "MISSING", "Asset missing during audit");
+            createDiscrepancy(cycle, item, AuditDiscrepancyType.MISSING, "Asset missing during audit");
         } else if (request.getVerificationStatus() == AuditVerificationStatus.DAMAGED) {
-            createDiscrepancy(cycle, item, "DAMAGED", "Asset damaged during audit");
-        } else if (request.getVerificationStatus() == AuditVerificationStatus.VERIFIED && request.getActualLocation() != null && !request.getActualLocation().equals(item.getExpectedLocation())) {
-            createDiscrepancy(cycle, item, "LOCATION_MISMATCH", "Asset location mismatch");
+            createDiscrepancy(cycle, item, AuditDiscrepancyType.DAMAGED, "Asset damaged during audit");
+        } else if (request.getVerificationStatus() == AuditVerificationStatus.VERIFIED
+                && request.getActualLocation() != null
+                && !request.getActualLocation().equals(item.getExpectedLocation())) {
+            createDiscrepancy(cycle, item, AuditDiscrepancyType.LOCATION_MISMATCH, "Asset location mismatch");
         }
         activityLogService.log(userId, "ITEM_VERIFIED", "AuditItem", item.getId(), "Audit item verified with status " + request.getVerificationStatus());
         return toItemResponse(item);
@@ -178,13 +195,16 @@ public class AuditService {
         requireRole(auth, Role.ADMIN);
         AuditDiscrepancy discrepancy = discrepancyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Discrepancy not found"));
-        if (discrepancy.getStatus().equals("RESOLVED")) {
+        if (discrepancy.getStatus().equals(AuditDiscrepancyStatus.RESOLVED.name())) {
             throw new ConflictException("Discrepancy already resolved");
+        }
+        if (!userRepository.existsById(request.getResolvedByUserId())) {
+            throw new BadRequestException("Resolver user does not exist");
         }
         discrepancy.setResolvedByUserId(request.getResolvedByUserId());
         discrepancy.setResolutionNotes(request.getResolutionNotes());
         discrepancy.setResolvedAt(LocalDateTime.now());
-        discrepancy.setStatus("RESOLVED");
+        discrepancy.setStatus(AuditDiscrepancyStatus.RESOLVED.name());
         discrepancyRepository.save(discrepancy);
         activityLogService.log(getUserId(auth), "DISCREPANCY_RESOLVED", "AuditDiscrepancy", discrepancy.getId(), "Resolved discrepancy");
         return toDiscrepancyResponse(discrepancy);
@@ -195,7 +215,7 @@ public class AuditService {
         Authentication auth = requireAuth();
         requireRole(auth, Role.ADMIN);
         AuditCycle cycle = findCycle(auditId);
-        if (cycle.getStatus().equals("CLOSED") || cycle.getStatus().equals("CANCELLED")) {
+        if (cycle.getStatus().equals(AuditStatus.CLOSED.name()) || cycle.getStatus().equals(AuditStatus.CANCELLED.name())) {
             throw new ConflictException("Audit already closed or cancelled");
         }
         long pending = itemRepository.countByAuditCycleIdAndVerificationStatusIsNull(auditId);
@@ -209,7 +229,7 @@ public class AuditService {
                 assetAuditGateway.markAssetDamaged(item.getAssetId(), getUserId(auth), "Confirmed damaged asset during audit");
             }
         });
-        cycle.setStatus("CLOSED");
+        cycle.setStatus(AuditStatus.CLOSED.name());
         cycle.setClosedAt(LocalDateTime.now());
         cycle.setClosedByUserId(getUserId(auth));
         cycleRepository.save(cycle);
@@ -265,21 +285,26 @@ public class AuditService {
     }
 
     private void validateScope(CreateAuditCycleRequest request) {
-        if (request.getScopeType().equals("DEPARTMENT")) {
+        if (request.getScopeType() == null || request.getScopeType().isBlank()) {
+            throw new BadRequestException("scopeType is required");
+        }
+        AuditScopeType scopeType = AuditScopeType.fromString(request.getScopeType());
+        if (scopeType == null) {
+            throw new BadRequestException("Unsupported scope type");
+        }
+        if (scopeType == AuditScopeType.DEPARTMENT) {
             if (request.getDepartmentId() == null) {
                 throw new BadRequestException("departmentId is required for DEPARTMENT scope");
             }
-        } else if (request.getScopeType().equals("LOCATION")) {
+        } else if (scopeType == AuditScopeType.LOCATION) {
             if (request.getLocation() == null || request.getLocation().isBlank()) {
                 throw new BadRequestException("location is required for LOCATION scope");
             }
-        } else {
-            throw new BadRequestException("Unsupported scope type");
         }
     }
 
     private void ensureNotClosed(AuditCycle cycle) {
-        if (cycle.getStatus().equals("CLOSED") || cycle.getStatus().equals("CANCELLED")) {
+        if (cycle.getStatus().equals(AuditStatus.CLOSED.name()) || cycle.getStatus().equals(AuditStatus.CANCELLED.name())) {
             throw new ConflictException("Closed audits cannot be modified");
         }
     }
@@ -361,14 +386,14 @@ public class AuditService {
         }
     }
 
-    private void createDiscrepancy(AuditCycle auditCycle, AuditItem item, String type, String description) {
+    private void createDiscrepancy(AuditCycle auditCycle, AuditItem item, AuditDiscrepancyType type, String description) {
         AuditDiscrepancy discrepancy = new AuditDiscrepancy();
         discrepancy.setAuditCycleId(auditCycle.getId());
         discrepancy.setAuditItemId(item.getId());
         discrepancy.setAssetId(item.getAssetId());
-        discrepancy.setDiscrepancyType(type);
+        discrepancy.setDiscrepancyType(type.name());
         discrepancy.setDescription(description);
-        discrepancy.setStatus("OPEN");
+        discrepancy.setStatus(AuditDiscrepancyStatus.OPEN.name());
         discrepancyRepository.save(discrepancy);
         activityLogService.log(getUserId(SecurityContextHolder.getContext().getAuthentication()), "DISCREPANCY_CREATED", "AuditDiscrepancy", discrepancy.getId(), description);
     }

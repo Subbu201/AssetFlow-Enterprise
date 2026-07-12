@@ -1,8 +1,11 @@
 package com.assetflow.notification;
 
-import com.assetflow.common.ApiResponse;
+import com.assetflow.common.Role;
+import com.assetflow.exception.BadRequestException;
 import com.assetflow.exception.ForbiddenException;
 import com.assetflow.exception.ResourceNotFoundException;
+import com.assetflow.notification.dto.CreateNotificationRequest;
+import com.assetflow.notification.dto.NotificationResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -10,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class NotificationService {
@@ -21,22 +25,24 @@ public class NotificationService {
     }
 
     @Transactional
-    public Notification createNotification(Long recipientUserId, NotificationType type, String title, String message, String referenceType, Long referenceId) {
+    public NotificationResponse createNotification(CreateNotificationRequest request) {
         Notification notification = new Notification();
-        notification.setRecipientUserId(recipientUserId);
-        notification.setType(type);
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setReferenceType(referenceType);
-        notification.setReferenceId(referenceId);
+        notification.setRecipientUserId(request.getRecipientUserId());
+        notification.setType(request.getType());
+        notification.setTitle(request.getTitle());
+        notification.setMessage(request.getMessage());
+        notification.setReferenceType(request.getReferenceType());
+        notification.setReferenceId(request.getReferenceId());
         notification.setRead(false);
         repository.save(notification);
-        return notification;
+        return toResponse(notification);
     }
 
-    public List<Notification> getMyNotifications() {
+    public List<NotificationResponse> getMyNotifications() {
         Long userId = getAuthenticatedUserId();
-        return repository.findByRecipientUserIdOrderByCreatedAtDesc(userId);
+        return repository.findByRecipientUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     public long getUnreadCount() {
@@ -45,7 +51,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public Notification markRead(Long id) {
+    public NotificationResponse markRead(Long id) {
         Notification notification = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         Long userId = getAuthenticatedUserId();
@@ -57,7 +63,7 @@ public class NotificationService {
             notification.setReadAt(LocalDateTime.now());
             repository.save(notification);
         }
-        return notification;
+        return toResponse(notification);
     }
 
     @Transactional
@@ -73,7 +79,7 @@ public class NotificationService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void deleteNotification(Long id) {
         Notification notification = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         Long userId = getAuthenticatedUserId();
@@ -83,6 +89,22 @@ public class NotificationService {
         repository.delete(notification);
     }
 
+    private NotificationResponse toResponse(Notification notification) {
+        return NotificationResponse.builder()
+                .id(notification.getId())
+                .recipientUserId(notification.getRecipientUserId())
+                .type(notification.getType())
+                .title(notification.getTitle())
+                .message(notification.getMessage())
+                .referenceType(notification.getReferenceType())
+                .referenceId(notification.getReferenceId())
+                .read(notification.isRead())
+                .readAt(notification.getReadAt())
+                .createdAt(notification.getCreatedAt())
+                .updatedAt(notification.getUpdatedAt())
+                .build();
+    }
+
     private Long getAuthenticatedUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -90,7 +112,11 @@ public class NotificationService {
         }
         Object principal = authentication.getPrincipal();
         if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
-            return Long.parseLong(userDetails.getUsername());
+            try {
+                return Long.parseLong(userDetails.getUsername());
+            } catch (NumberFormatException e) {
+                throw new ForbiddenException("Invalid authentication principal");
+            }
         }
         throw new ForbiddenException("Invalid authentication principal");
     }

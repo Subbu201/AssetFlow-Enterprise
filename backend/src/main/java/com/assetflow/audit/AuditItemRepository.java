@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface AuditItemRepository extends JpaRepository<AuditItem, Long> {
     List<AuditItem> findByAuditCycleId(Long auditCycleId);
+    boolean existsByAuditCycleId(Long auditCycleId);
     long countByAuditCycleIdAndVerificationStatusIsNull(Long auditCycleId);
     long countByAuditCycleId(Long auditCycleId);
     long countByAuditCycleIdAndVerificationStatus(Long auditCycleId, com.assetflow.common.AuditVerificationStatus status);

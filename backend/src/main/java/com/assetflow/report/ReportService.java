@@ -1,6 +1,5 @@
 package com.assetflow.report;
 
-import com.assetflow.common.ApiResponse;
 import com.assetflow.exception.ForbiddenException;
 import com.assetflow.common.Role;
 import com.assetflow.report.dto.AssetStatusReport;

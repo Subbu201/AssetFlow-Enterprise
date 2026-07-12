@@ -1,10 +1,15 @@
 package com.assetflow.notification;
 
 import com.assetflow.common.ApiResponse;
+import com.assetflow.notification.dto.CreateNotificationRequest;
+import com.assetflow.notification.dto.NotificationResponse;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,18 +25,23 @@ public class NotificationController {
         this.service = service;
     }
 
-    @GetMapping("/my")
-    public ApiResponse<List<Notification>> getMyNotifications() {
+    @PostMapping
+    public ApiResponse<NotificationResponse> createNotification(@Valid @RequestBody CreateNotificationRequest request) {
+        return ApiResponse.success("Notification created", service.createNotification(request));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<List<NotificationResponse>> getMyNotifications() {
         return ApiResponse.success("Notifications returned", service.getMyNotifications());
     }
 
-    @GetMapping("/my/unread-count")
+    @GetMapping("/me/unread-count")
     public ApiResponse<Long> getUnreadCount() {
         return ApiResponse.success("Unread notification count returned", service.getUnreadCount());
     }
 
     @PatchMapping("/{id}/read")
-    public ApiResponse<Notification> markRead(@PathVariable Long id) {
+    public ApiResponse<NotificationResponse> markRead(@PathVariable Long id) {
         return ApiResponse.success("Notification marked read", service.markRead(id));
     }
 
@@ -43,7 +53,7 @@ public class NotificationController {
 
     @DeleteMapping("/{id}")
     public ApiResponse<String> delete(@PathVariable Long id) {
-        service.delete(id);
+        service.deleteNotification(id);
         return ApiResponse.success("Notification deleted", null);
     }
 }
