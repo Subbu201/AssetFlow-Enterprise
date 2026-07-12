@@ -2,19 +2,24 @@ package com.assetflow.maintenance.integration;
 
 import com.assetflow.common.AssetStatus;
 import com.assetflow.exception.ResourceNotFoundException;
-import org.springframework.context.annotation.Profile;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * In-memory stub implementation of {@link AssetLifecycleGateway}.
- * Loaded only when the "test" Spring profile is active.
- * Tests can pre-populate assets by calling {@link #registerAsset(AssetSnapshot)}.
+ * In-memory no-op stub for {@link AssetLifecycleGateway}.
+ *
+ * Activated automatically whenever no real implementation is present in the
+ * Spring context (dev, default, and test profiles). Once Member 2 provides
+ * a concrete {@link AssetLifecycleGateway} bean, this stub steps aside
+ * automatically via {@code @ConditionalOnMissingBean} in config.
+ *
+ * Tests can pre-populate asset snapshots via {@link #registerAsset(AssetSnapshot)}.
  */
-@Component
-@Profile("test")
+@Slf4j
 public class StubAssetLifecycleGateway implements AssetLifecycleGateway {
 
     private final Map<Long, AssetSnapshot> store = new ConcurrentHashMap<>();
