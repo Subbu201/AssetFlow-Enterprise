@@ -23,17 +23,21 @@ public class AssetHistoryService {
     }
 
     @Transactional
-    public void recordStatusChange(Long assetId, Long userId, AssetStatus previousStatus, AssetStatus newStatus, String action, String remarks) {
-        saveHistory(assetId, action, previousStatus, newStatus, previousStatus != null ? previousStatus.name() : null, newStatus != null ? newStatus.name() : null, remarks, userId, LocalDateTime.now());
+    public void recordStatusChange(Long assetId, Long userId, AssetStatus previousStatus, AssetStatus newStatus,
+            String action, String remarks) {
+        saveHistory(assetId, action, previousStatus, newStatus, previousStatus != null ? previousStatus.name() : null,
+                newStatus != null ? newStatus.name() : null, remarks, userId, LocalDateTime.now());
     }
 
     @Transactional
-    public void recordLocationChange(Long assetId, Long userId, String previousValue, String newValue, String action, String remarks) {
+    public void recordLocationChange(Long assetId, Long userId, String previousValue, String newValue, String action,
+            String remarks) {
         saveHistory(assetId, action, null, null, previousValue, newValue, remarks, userId, LocalDateTime.now());
     }
 
     @Transactional
-    public void recordConditionChange(Long assetId, Long userId, String previousValue, String newValue, String action, String remarks) {
+    public void recordConditionChange(Long assetId, Long userId, String previousValue, String newValue, String action,
+            String remarks) {
         saveHistory(assetId, action, null, null, previousValue, newValue, remarks, userId, LocalDateTime.now());
     }
 
@@ -59,12 +63,12 @@ public class AssetHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<AssetResponse> getAssetTimeline(Long assetId) {
-        return new ArrayList<>();
+    public List<AssetHistoryResponse> getAssetTimeline(Long assetId) {
+        return getHistory(assetId);
     }
 
     private void saveHistory(Long assetId, String action, AssetStatus previousStatus, AssetStatus newStatus,
-                             String previousValue, String newValue, String remarks, Long performedByUserId, LocalDateTime eventTime) {
+            String previousValue, String newValue, String remarks, Long performedByUserId, LocalDateTime eventTime) {
         AssetHistory history = new AssetHistory();
         history.setAssetId(assetId);
         history.setAction(action);

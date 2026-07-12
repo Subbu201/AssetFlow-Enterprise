@@ -28,18 +28,21 @@ public class AssetAllocationService {
 
     @Transactional
     public AllocationResponse createAllocation(CreateAllocationRequest request) {
-        Asset asset = assetRepository.findById(request.getAssetId()).orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
+        Asset asset = assetRepository.findById(request.getAssetId())
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
+        if (allocationRepository.existsByAssetIdAndStatus(request.getAssetId(), "ACTIVE")) {
+            throw new ConflictException("Asset is already allocated");
+        }
         if (asset.getStatus() != AssetStatus.AVAILABLE) {
             throw new ConflictException("Asset is not available for allocation");
         }
-        if ((request.getEmployeeId() == null && request.getDepartmentId() == null) || (request.getEmployeeId() != null && request.getDepartmentId() != null)) {
+        if ((request.getEmployeeId() == null && request.getDepartmentId() == null)
+                || (request.getEmployeeId() != null && request.getDepartmentId() != null)) {
             throw new BadRequestException("Exactly one allocation target is required");
         }
-        if (request.getExpectedReturnDate() != null && request.getExpectedReturnDate().isBefore(request.getAllocationDate() != null ? request.getAllocationDate() : LocalDate.now())) {
+        if (request.getExpectedReturnDate() != null && request.getExpectedReturnDate()
+                .isBefore(request.getAllocationDate() != null ? request.getAllocationDate() : LocalDate.now())) {
             throw new BadRequestException("Expected return date cannot be before allocation date");
-        }
-        if (allocationRepository.existsByAssetIdAndStatus(request.getAssetId(), "ACTIVE")) {
-            throw new ConflictException("Asset is already allocated");
         }
 
         AssetAllocation allocation = new AssetAllocation();
@@ -47,7 +50,8 @@ public class AssetAllocationService {
         allocation.setEmployeeId(request.getEmployeeId());
         allocation.setDepartmentId(request.getDepartmentId());
         allocation.setAllocatedByUserId(request.getAllocatedByUserId());
-        allocation.setAllocationDate(request.getAllocationDate() != null ? request.getAllocationDate() : LocalDate.now());
+        allocation
+                .setAllocationDate(request.getAllocationDate() != null ? request.getAllocationDate() : LocalDate.now());
         allocation.setExpectedReturnDate(request.getExpectedReturnDate());
         allocation.setStatus("ACTIVE");
         allocation.setNotes(request.getNotes());
@@ -55,13 +59,15 @@ public class AssetAllocationService {
 
         asset.setStatus(AssetStatus.ALLOCATED);
         assetRepository.save(asset);
-        assetHistoryService.recordAllocation(asset.getId(), request.getAllocatedByUserId(), "Allocation created", "Asset allocated");
+        assetHistoryService.recordAllocation(asset.getId(), request.getAllocatedByUserId(), "Allocation created",
+                "Asset allocated");
         return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
     public AllocationResponse getAllocation(Long id) {
-        return toResponse(allocationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Allocation not found")));
+        return toResponse(allocationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Allocation not found")));
     }
 
     @Transactional(readOnly = true)
@@ -81,7 +87,8 @@ public class AssetAllocationService {
 
     @Transactional(readOnly = true)
     public List<AllocationResponse> getOverdueAllocations() {
-        return allocationRepository.findByStatusAndExpectedReturnDateBefore("ACTIVE", LocalDate.now()).stream().map(this::toResponse).toList();
+        return allocationRepository.findByStatusAndExpectedReturnDateBefore("ACTIVE", LocalDate.now()).stream()
+                .map(this::toResponse).toList();
     }
 
     @Transactional
@@ -89,7 +96,8 @@ public class AssetAllocationService {
         List<AssetAllocation> activeAllocations = allocationRepository.findByStatus("ACTIVE");
         int updated = 0;
         for (AssetAllocation allocation : activeAllocations) {
-            if (allocation.getExpectedReturnDate() != null && allocation.getExpectedReturnDate().isBefore(LocalDate.now())) {
+            if (allocation.getExpectedReturnDate() != null
+                    && allocation.getExpectedReturnDate().isBefore(LocalDate.now())) {
                 allocation.setStatus("OVERDUE");
                 allocationRepository.save(allocation);
                 updated++;
@@ -105,7 +113,8 @@ public class AssetAllocationService {
 
     @Transactional
     public AllocationConflictResponse buildConflictResponse(Long assetId) {
-        Optional<AssetAllocation> current = allocationRepository.findFirstByAssetIdAndStatusIn(assetId, List.of("ACTIVE", "RETURN_REQUESTED", "TRANSFER_PENDING"));
+        Optional<AssetAllocation> current = allocationRepository.findFirstByAssetIdAndStatusIn(assetId,
+                List.of("ACTIVE", "RETURN_REQUESTED", "TRANSFER_PENDING"));
         if (current.isEmpty()) {
             return null;
         }

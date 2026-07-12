@@ -2,6 +2,7 @@ package com.assetflow.asset;
 
 import com.assetflow.asset.dto.*;
 import com.assetflow.assethistory.AssetHistoryService;
+import com.assetflow.assethistory.dto.AssetHistoryResponse;
 import com.assetflow.common.AssetStatus;
 import com.assetflow.exception.BadRequestException;
 import com.assetflow.exception.ConflictException;
@@ -55,7 +56,8 @@ public class AssetService {
         asset.setAssetTag(generateAssetTag());
 
         Asset saved = assetRepository.save(asset);
-        assetHistoryService.recordAssetRegistration(saved.getId(), saved.getRegisteredByUserId(), "Asset registered", "Registration");
+        assetHistoryService.recordAssetRegistration(saved.getId(), saved.getRegisteredByUserId(), "Asset registered",
+                "Registration");
         return saved;
     }
 
@@ -66,45 +68,62 @@ public class AssetService {
 
     @Transactional(readOnly = true)
     public Page<AssetResponse> searchAssets(String keyword, String assetTag, String serialNumber, Long categoryId,
-                                           String status, Long departmentId, String location, Boolean sharedBookable,
-                                           int page, int size, String sort) {
-        Pageable pageable = PageRequest.of(page, size, sort == null ? Sort.by(Sort.Direction.DESC, "createdAt") : Sort.by(Sort.Direction.DESC, sort));
+            String status, Long departmentId, String location, Boolean sharedBookable,
+            int page, int size, String sort) {
+        Pageable pageable = PageRequest.of(page, size,
+                sort == null ? Sort.by(Sort.Direction.DESC, "createdAt") : Sort.by(Sort.Direction.DESC, sort));
         AssetStatus parsedStatus = null;
         if (status != null && !status.isBlank()) {
             parsedStatus = AssetStatus.valueOf(status.toUpperCase());
         }
-        return assetRepository.search(keyword, assetTag, serialNumber, categoryId, parsedStatus, departmentId, location, sharedBookable, pageable)
+        return assetRepository
+                .search(keyword, assetTag, serialNumber, categoryId, parsedStatus, departmentId, location,
+                        sharedBookable, pageable)
                 .map(this::toResponse);
     }
 
     @Transactional
     public Asset updateAsset(Long id, UpdateAssetRequest request) {
         Asset asset = getAsset(id);
-        if (request.getName() != null) asset.setName(request.getName());
-        if (request.getCategoryId() != null) asset.setCategoryId(request.getCategoryId());
+        if (request.getName() != null)
+            asset.setName(request.getName());
+        if (request.getCategoryId() != null)
+            asset.setCategoryId(request.getCategoryId());
         if (request.getSerialNumber() != null) {
-            if (assetRepository.existsBySerialNumber(request.getSerialNumber()) && !request.getSerialNumber().equals(asset.getSerialNumber())) {
+            if (assetRepository.existsBySerialNumber(request.getSerialNumber())
+                    && !request.getSerialNumber().equals(asset.getSerialNumber())) {
                 throw new ConflictException("Asset with this serial number already exists");
             }
             asset.setSerialNumber(request.getSerialNumber());
         }
-        if (request.getAcquisitionDate() != null) asset.setAcquisitionDate(request.getAcquisitionDate());
+        if (request.getAcquisitionDate() != null)
+            asset.setAcquisitionDate(request.getAcquisitionDate());
         if (request.getAcquisitionCost() != null) {
             if (request.getAcquisitionCost().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BadRequestException("Acquisition cost cannot be negative");
             }
             asset.setAcquisitionCost(request.getAcquisitionCost());
         }
-        if (request.getCondition() != null) asset.setCondition(request.getCondition());
-        if (request.getLocation() != null) asset.setLocation(request.getLocation());
-        if (request.getDepartmentId() != null) asset.setDepartmentId(request.getDepartmentId());
-        if (request.getSharedBookable() != null) asset.setSharedBookable(request.getSharedBookable());
-        if (request.getPhotoUrl() != null) asset.setPhotoUrl(request.getPhotoUrl());
-        if (request.getDocumentUrl() != null) asset.setDocumentUrl(request.getDocumentUrl());
-        if (request.getManufacturer() != null) asset.setManufacturer(request.getManufacturer());
-        if (request.getModel() != null) asset.setModel(request.getModel());
-        if (request.getWarrantyExpiryDate() != null) asset.setWarrantyExpiryDate(request.getWarrantyExpiryDate());
-        if (request.getNotes() != null) asset.setNotes(request.getNotes());
+        if (request.getCondition() != null)
+            asset.setCondition(request.getCondition());
+        if (request.getLocation() != null)
+            asset.setLocation(request.getLocation());
+        if (request.getDepartmentId() != null)
+            asset.setDepartmentId(request.getDepartmentId());
+        if (request.getSharedBookable() != null)
+            asset.setSharedBookable(request.getSharedBookable());
+        if (request.getPhotoUrl() != null)
+            asset.setPhotoUrl(request.getPhotoUrl());
+        if (request.getDocumentUrl() != null)
+            asset.setDocumentUrl(request.getDocumentUrl());
+        if (request.getManufacturer() != null)
+            asset.setManufacturer(request.getManufacturer());
+        if (request.getModel() != null)
+            asset.setModel(request.getModel());
+        if (request.getWarrantyExpiryDate() != null)
+            asset.setWarrantyExpiryDate(request.getWarrantyExpiryDate());
+        if (request.getNotes() != null)
+            asset.setNotes(request.getNotes());
         return assetRepository.save(asset);
     }
 
@@ -114,7 +133,8 @@ public class AssetService {
         AssetStatus oldStatus = asset.getStatus();
         asset.setStatus(request.getStatus());
         Asset saved = assetRepository.save(asset);
-        assetHistoryService.recordStatusChange(saved.getId(), asset.getRegisteredByUserId(), oldStatus, saved.getStatus(), "status changed", "Status updated");
+        assetHistoryService.recordStatusChange(saved.getId(), asset.getRegisteredByUserId(), oldStatus,
+                saved.getStatus(), "status changed", "Status updated");
         return saved;
     }
 
@@ -124,7 +144,8 @@ public class AssetService {
         String oldValue = asset.getLocation();
         asset.setLocation(request.getLocation());
         Asset saved = assetRepository.save(asset);
-        assetHistoryService.recordLocationChange(saved.getId(), asset.getRegisteredByUserId(), oldValue, saved.getLocation(), "location changed", "Location updated");
+        assetHistoryService.recordLocationChange(saved.getId(), asset.getRegisteredByUserId(), oldValue,
+                saved.getLocation(), "location changed", "Location updated");
         return saved;
     }
 
@@ -134,7 +155,8 @@ public class AssetService {
         String oldCondition = asset.getCondition();
         asset.setCondition(request.getCondition());
         Asset saved = assetRepository.save(asset);
-        assetHistoryService.recordConditionChange(saved.getId(), asset.getRegisteredByUserId(), oldCondition, saved.getCondition(), "condition changed", "Condition updated");
+        assetHistoryService.recordConditionChange(saved.getId(), asset.getRegisteredByUserId(), oldCondition,
+                saved.getCondition(), "condition changed", "Condition updated");
         return saved;
     }
 
@@ -145,11 +167,12 @@ public class AssetService {
 
     @Transactional(readOnly = true)
     public Asset findByAssetTag(String assetTag) {
-        return assetRepository.findByAssetTag(assetTag).orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
+        return assetRepository.findByAssetTag(assetTag)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
     }
 
     @Transactional(readOnly = true)
-    public List<AssetResponse> getAssetTimeline(Long assetId) {
+    public List<AssetHistoryResponse> getAssetTimeline(Long assetId) {
         return assetHistoryService.getAssetTimeline(assetId);
     }
 

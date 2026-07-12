@@ -34,7 +34,7 @@ public class Asset extends BaseEntity {
 
     @Column(precision = 12, scale = 2)
     private BigDecimal acquisitionCost;
-
+    @Column(name = "asset_condition")
     private String condition;
 
     private String location;

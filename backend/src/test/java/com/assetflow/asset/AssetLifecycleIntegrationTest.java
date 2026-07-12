@@ -77,9 +77,13 @@ class AssetLifecycleIntegrationTest {
 
     @Test
     void duplicateSerialNumberIsRejected() {
-        assetService.createAsset(buildCreateAssetRequest("Mouse"));
+        CreateAssetRequest first = buildCreateAssetRequest("Mouse");
+        CreateAssetRequest duplicate = buildCreateAssetRequest("Keyboard");
+        duplicate.setSerialNumber(first.getSerialNumber());
+
+        assetService.createAsset(first);
         try {
-            assetService.createAsset(buildCreateAssetRequest("Keyboard"));
+            assetService.createAsset(duplicate);
         } catch (RuntimeException ex) {
             assertThat(ex.getMessage()).contains("serial");
             return;
@@ -131,8 +135,9 @@ class AssetLifecycleIntegrationTest {
         Asset asset = assetService.createAsset(buildCreateAssetRequest("Camera"));
         allocationService.createAllocation(new CreateAllocationRequest(asset.getId(), 1001L, null, LocalDate.now(),
                 LocalDate.now().plusDays(5), "Initial"));
-        assertThatThrownBy(() -> allocationService.createAllocation(new CreateAllocationRequest(asset.getId(), 1002L, null, LocalDate.now(),
-                LocalDate.now().plusDays(5), "Second")))
+        assertThatThrownBy(() -> allocationService
+                .createAllocation(new CreateAllocationRequest(asset.getId(), 1002L, null, LocalDate.now(),
+                        LocalDate.now().plusDays(5), "Second")))
                 .isInstanceOf(RuntimeException.class);
     }
 
