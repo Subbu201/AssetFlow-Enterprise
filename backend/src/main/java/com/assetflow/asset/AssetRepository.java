@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface AssetRepository extends JpaRepository<Asset, Long> {
     Optional<Asset> findByAssetTag(String assetTag);
     boolean existsBySerialNumber(String serialNumber);
+    long countByStatus(AssetStatus status);
 
     @Query("select a from Asset a where " +
             "(:keyword is null or lower(a.assetTag) like lower(concat('%', :keyword, '%')) or lower(a.name) like lower(concat('%', :keyword, '%')) or lower(a.serialNumber) like lower(concat('%', :keyword, '%')) or lower(a.location) like lower(concat('%', :keyword, '%')) or lower(a.manufacturer) like lower(concat('%', :keyword, '%')) or lower(a.model) like lower(concat('%', :keyword, '%'))) and " +

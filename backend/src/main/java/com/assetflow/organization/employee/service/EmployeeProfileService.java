@@ -24,6 +24,8 @@ public class EmployeeProfileService {
     private final EmployeeProfileRepository employeeRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final com.assetflow.allocation.AssetAllocationRepository allocationRepository;
+    private final com.assetflow.asset.AssetRepository assetRepository;
 
     public Page<EmployeeProfileResponse> getEmployees(String employeeCode, Pageable pageable) {
         String searchCode = employeeCode == null ? "" : employeeCode;
@@ -63,6 +65,24 @@ public class EmployeeProfileService {
     private EmployeeProfileResponse mapToResponse(EmployeeProfile profile) {
         UserAccount user = userRepository.findById(profile.getUserAccountId()).orElse(null);
         
+        java.util.List<com.assetflow.allocation.AssetAllocation> allocations = 
+                allocationRepository.findByEmployeeId(profile.getId());
+        
+        java.util.List<EmployeeProfileResponse.AllocatedAssetResponse> activeAssets = allocations.stream()
+                .filter(alloc -> java.util.List.of("ACTIVE", "OVERDUE", "TRANSFER_PENDING", "RETURN_REQUESTED").contains(alloc.getStatus()))
+                .map(alloc -> {
+                    com.assetflow.asset.Asset asset = assetRepository.findById(alloc.getAssetId()).orElse(null);
+                    if (asset == null) return null;
+                    return EmployeeProfileResponse.AllocatedAssetResponse.builder()
+                            .id(asset.getId())
+                            .name(asset.getName())
+                            .assetTag(asset.getAssetTag())
+                            .serialNumber(asset.getSerialNumber())
+                            .build();
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
         return EmployeeProfileResponse.builder()
                 .id(profile.getId())
                 .userAccountId(profile.getUserAccountId())
@@ -75,6 +95,7 @@ public class EmployeeProfileService {
                 .email(user != null ? user.getEmail() : null)
                 .fullName(user != null ? user.getFullName() : null)
                 .role(user != null ? user.getRole() : null)
+                .allocatedAssets(activeAssets)
                 .build();
     }
 }

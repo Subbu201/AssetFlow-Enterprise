@@ -36,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final com.assetflow.organization.employee.repository.EmployeeProfileRepository employeeRepository;
 
     @Value("${app.security.max-login-attempts:5}")
     private int maxLoginAttempts;
@@ -66,6 +67,15 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         user = userRepository.save(user);
+
+        com.assetflow.organization.employee.entity.EmployeeProfile profile = com.assetflow.organization.employee.entity.EmployeeProfile.builder()
+                .userAccountId(user.getId())
+                .employeeCode("EMP-" + String.format("%04d", user.getId()))
+                .designation("Employee")
+                .joiningDate(java.time.LocalDate.now())
+                .status(RecordStatus.ACTIVE)
+                .build();
+        employeeRepository.save(profile);
 
         return UserResponse.builder()
                 .id(user.getId())

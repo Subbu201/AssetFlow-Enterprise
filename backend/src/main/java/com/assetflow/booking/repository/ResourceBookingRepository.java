@@ -14,6 +14,7 @@ import java.util.List;
 
 public interface ResourceBookingRepository
         extends JpaRepository<ResourceBooking, Long>, JpaSpecificationExecutor<ResourceBooking> {
+    long countByStatusIn(List<BookingStatus> statuses);
 
     /**
      * Finds all non-cancelled bookings for an asset whose time window overlaps

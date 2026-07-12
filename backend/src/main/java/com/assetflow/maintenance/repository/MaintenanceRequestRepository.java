@@ -14,6 +14,7 @@ import java.util.Optional;
 
 public interface MaintenanceRequestRepository
         extends JpaRepository<MaintenanceRequest, Long>, JpaSpecificationExecutor<MaintenanceRequest> {
+    long countByStatusIn(List<com.assetflow.common.MaintenanceStatus> statuses);
 
     /**
      * Checks whether the asset already has an active (non-terminal) maintenance request.

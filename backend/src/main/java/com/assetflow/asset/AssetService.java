@@ -25,20 +25,27 @@ public class AssetService {
 
     private final AssetRepository assetRepository;
     private final AssetHistoryService assetHistoryService;
+    private final com.assetflow.auth.repository.UserRepository userRepository;
 
     @Transactional
     public Asset createAsset(CreateAssetRequest request) {
         if (request.getAcquisitionCost() != null && request.getAcquisitionCost().compareTo(BigDecimal.ZERO) < 0) {
             throw new BadRequestException("Acquisition cost cannot be negative");
         }
-        if (request.getSerialNumber() != null && assetRepository.existsBySerialNumber(request.getSerialNumber())) {
+        
+        String serialNumber = request.getSerialNumber();
+        if (serialNumber != null && serialNumber.trim().isEmpty()) {
+            serialNumber = null;
+        }
+        
+        if (serialNumber != null && assetRepository.existsBySerialNumber(serialNumber)) {
             throw new ConflictException("Asset with this serial number already exists");
         }
 
         Asset asset = new Asset();
         asset.setName(request.getName());
         asset.setCategoryId(request.getCategoryId());
-        asset.setSerialNumber(request.getSerialNumber());
+        asset.setSerialNumber(serialNumber);
         asset.setAcquisitionDate(request.getAcquisitionDate());
         asset.setAcquisitionCost(request.getAcquisitionCost());
         asset.setCondition(request.getCondition());
@@ -90,11 +97,19 @@ public class AssetService {
         if (request.getCategoryId() != null)
             asset.setCategoryId(request.getCategoryId());
         if (request.getSerialNumber() != null) {
-            if (assetRepository.existsBySerialNumber(request.getSerialNumber())
-                    && !request.getSerialNumber().equals(asset.getSerialNumber())) {
-                throw new ConflictException("Asset with this serial number already exists");
+            String reqSerial = request.getSerialNumber();
+            if (reqSerial.trim().isEmpty()) {
+                reqSerial = null;
             }
-            asset.setSerialNumber(request.getSerialNumber());
+            if (reqSerial != null) {
+                if (assetRepository.existsBySerialNumber(reqSerial)
+                        && !reqSerial.equals(asset.getSerialNumber())) {
+                    throw new ConflictException("Asset with this serial number already exists");
+                }
+                asset.setSerialNumber(reqSerial);
+            } else {
+                asset.setSerialNumber(null);
+            }
         }
         if (request.getAcquisitionDate() != null)
             asset.setAcquisitionDate(request.getAcquisitionDate());
@@ -201,6 +216,12 @@ public class AssetService {
         response.setWarrantyExpiryDate(asset.getWarrantyExpiryDate());
         response.setNotes(asset.getNotes());
         response.setRegisteredByUserId(asset.getRegisteredByUserId());
+        if (asset.getRegisteredByUserId() != null) {
+            userRepository.findById(asset.getRegisteredByUserId()).ifPresent(user -> {
+                response.setRegisteredByUserEmail(user.getEmail());
+                response.setRegisteredByUserName(user.getFullName());
+            });
+        }
         response.setVersion(asset.getVersion());
         response.setCreatedAt(asset.getCreatedAt());
         response.setUpdatedAt(asset.getUpdatedAt());

@@ -23,4 +23,14 @@ public class EmployeeProfileResponse {
     private String email;
     private String fullName;
     private Role role;
+    private java.util.List<AllocatedAssetResponse> allocatedAssets;
+
+    @Data
+    @Builder
+    public static class AllocatedAssetResponse {
+        private Long id;
+        private String name;
+        private String assetTag;
+        private String serialNumber;
+    }
 }
