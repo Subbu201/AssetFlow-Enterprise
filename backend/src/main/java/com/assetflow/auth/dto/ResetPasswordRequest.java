@@ -7,6 +7,9 @@ import lombok.Data;
 @Data
 public class ResetPasswordRequest {
 
+    @NotBlank(message = "Email cannot be blank")
+    private String email;
+
     @NotBlank(message = "Token cannot be blank")
     private String token;
 
