@@ -23,7 +23,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             );
 
-        // JWT filter will be implemented and added in the authentication module
         return http.build();
     }
 }
