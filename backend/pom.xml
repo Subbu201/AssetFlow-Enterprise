@@ -109,6 +109,12 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Loads .env file automatically into Spring environment -->
+		<dependency>
+			<groupId>me.paulschwarz</groupId>
+			<artifactId>spring-dotenv</artifactId>
+			<version>4.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -117,6 +123,8 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<!-- Activates application-local.properties automatically for local dev -->
+					<profiles>local</profiles>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>

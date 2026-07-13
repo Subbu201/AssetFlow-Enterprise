@@ -166,55 +166,59 @@ public class AdminBootstrapService {
             }
         }
 
-        // 5. Bootstrap Notifications for Admin & Employee
-        userRepository.findByEmailIgnoreCase(bootstrapAdminEmail.toLowerCase()).ifPresent(admin -> {
-            if (notificationRepository.countByRecipientUserIdAndReadFalse(admin.getId()) == 0) {
-                com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
-                notif1.setRecipientUserId(admin.getId());
-                notif1.setType(com.assetflow.notification.NotificationType.OVERDUE_RETURN);
-                notif1.setTitle("URGENT: Return Overdue");
-                notif1.setMessage("Critical: 3 asset allocations are overdue for return. Please review and send return reminders.");
-                notif1.setReferenceType("OVERDUE");
-                notif1.setReferenceId(1L);
-                notif1.setRead(false);
-                notificationRepository.save(notif1);
+        // 5. Bootstrap Notifications for Admin & Employee (non-critical - wrapped in try-catch)
+        try {
+            userRepository.findByEmailIgnoreCase(bootstrapAdminEmail.toLowerCase()).ifPresent(admin -> {
+                if (notificationRepository.countByRecipientUserIdAndReadFalse(admin.getId()) == 0) {
+                    com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
+                    notif1.setRecipientUserId(admin.getId());
+                    notif1.setType(com.assetflow.notification.NotificationType.OVERDUE_RETURN);
+                    notif1.setTitle("URGENT: Return Overdue");
+                    notif1.setMessage("Critical: 3 asset allocations are overdue for return. Please review and send return reminders.");
+                    notif1.setReferenceType("OVERDUE");
+                    notif1.setReferenceId(1L);
+                    notif1.setRead(false);
+                    notificationRepository.save(notif1);
 
-                com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
-                notif2.setRecipientUserId(admin.getId());
-                notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
-                notif2.setTitle("General Notice");
-                notif2.setMessage("Welcome to AssetFlow Enterprise! Please complete the category mappings for the new quarter.");
-                notif2.setReferenceType("SYSTEM");
-                notif2.setReferenceId(2L);
-                notif2.setRead(false);
-                notificationRepository.save(notif2);
-                log.info("Bootstrapped notifications for ADMIN.");
-            }
-        });
+                    com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
+                    notif2.setRecipientUserId(admin.getId());
+                    notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
+                    notif2.setTitle("General Notice");
+                    notif2.setMessage("Welcome to AssetFlow Enterprise! Please complete the category mappings for the new quarter.");
+                    notif2.setReferenceType("SYSTEM");
+                    notif2.setReferenceId(2L);
+                    notif2.setRead(false);
+                    notificationRepository.save(notif2);
+                    log.info("Bootstrapped notifications for ADMIN.");
+                }
+            });
 
-        userRepository.findByEmailIgnoreCase("employee@assetflow.com").ifPresent(emp -> {
-            if (notificationRepository.countByRecipientUserIdAndReadFalse(emp.getId()) == 0) {
-                com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
-                notif1.setRecipientUserId(emp.getId());
-                notif1.setType(com.assetflow.notification.NotificationType.BOOKING_REMINDER);
-                notif1.setTitle("URGENT: Warranty Warning");
-                notif1.setMessage("Your allocated Dell Laptop (serial: CN-0192) has an expiring warranty next week.");
-                notif1.setReferenceType("WARRANTY");
-                notif1.setReferenceId(3L);
-                notif1.setRead(false);
-                notificationRepository.save(notif1);
+            userRepository.findByEmailIgnoreCase("employee@assetflow.com").ifPresent(emp -> {
+                if (notificationRepository.countByRecipientUserIdAndReadFalse(emp.getId()) == 0) {
+                    com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
+                    notif1.setRecipientUserId(emp.getId());
+                    notif1.setType(com.assetflow.notification.NotificationType.BOOKING_REMINDER);
+                    notif1.setTitle("URGENT: Warranty Warning");
+                    notif1.setMessage("Your allocated Dell Laptop (serial: CN-0192) has an expiring warranty next week.");
+                    notif1.setReferenceType("WARRANTY");
+                    notif1.setReferenceId(3L);
+                    notif1.setRead(false);
+                    notificationRepository.save(notif1);
 
-                com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
-                notif2.setRecipientUserId(emp.getId());
-                notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
-                notif2.setTitle("Welcome to AssetFlow");
-                notif2.setMessage("Your employee profile has been fully activated. View your assigned equipment in the profile page.");
-                notif2.setReferenceType("SYSTEM");
-                notif2.setReferenceId(4L);
-                notif2.setRead(false);
-                notificationRepository.save(notif2);
-                log.info("Bootstrapped notifications for EMPLOYEE.");
-            }
-        });
+                    com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
+                    notif2.setRecipientUserId(emp.getId());
+                    notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
+                    notif2.setTitle("Welcome to AssetFlow");
+                    notif2.setMessage("Your employee profile has been fully activated. View your assigned equipment in the profile page.");
+                    notif2.setReferenceType("SYSTEM");
+                    notif2.setReferenceId(4L);
+                    notif2.setRead(false);
+                    notificationRepository.save(notif2);
+                    log.info("Bootstrapped notifications for EMPLOYEE.");
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Could not bootstrap notifications (table may not be ready yet): {}", e.getMessage());
+        }
     }
 }
