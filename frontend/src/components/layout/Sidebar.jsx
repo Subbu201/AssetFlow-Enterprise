@@ -16,11 +16,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, window }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   
-  // Example menu items
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Departments', icon: <BusinessIcon />, path: '/departments' },
-    { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
+    ...(isAdmin ? [
+      { text: 'Departments', icon: <BusinessIcon />, path: '/departments' },
+      { text: 'Categories', icon: <CategoryIcon />, path: '/categories' }
+    ] : []),
     { text: 'Assets', icon: <InventoryIcon />, path: '/assets' },
     ...(isAdmin ? [{ text: 'Employee List', icon: <PeopleIcon />, path: '/employees' }] : []),
   ];

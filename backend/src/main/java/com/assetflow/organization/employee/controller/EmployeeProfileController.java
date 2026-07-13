@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/employees")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'ASSET_MANAGER')")
 @RequiredArgsConstructor
 public class EmployeeProfileController {
 
@@ -35,6 +35,7 @@ public class EmployeeProfileController {
     }
 
     @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<EmployeeProfileResponse>> updateRole(
             @PathVariable Long id,
             @Valid @RequestBody UpdateRoleRequest request) {

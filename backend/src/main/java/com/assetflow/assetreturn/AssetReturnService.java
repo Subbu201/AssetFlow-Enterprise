@@ -65,6 +65,8 @@ public class AssetReturnService {
         allocationRepository.save(allocation);
 
         Asset asset = assetRepository.findById(assetReturn.getAssetId()).orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
+        int currentQty = asset.getQuantity() != null ? asset.getQuantity() : 0;
+        asset.setQuantity(currentQty + 1);
         asset.setStatus(AssetStatus.AVAILABLE);
         assetRepository.save(asset);
 

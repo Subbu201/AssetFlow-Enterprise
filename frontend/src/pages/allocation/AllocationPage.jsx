@@ -4,16 +4,13 @@ import AddIcon from '@mui/icons-material/Add';
 import allocationService from '../../services/allocationService';
 import assetService from '../../services/assetService';
 import employeeService from '../../services/employeeService';
-import departmentService from '../../services/departmentService';
 import { useAuth } from '../../hooks/useAuth';
 
 const AllocationPage = () => {
   const { user } = useAuth();
-  
   const [allocations, setAllocations] = useState([]);
   const [assets, setAssets] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -22,7 +19,6 @@ const AllocationPage = () => {
   const [formData, setFormData] = useState({
     assetId: '',
     employeeId: '',
-    departmentId: '',
     allocationDate: '',
     expectedReturnDate: '',
     notes: ''
@@ -30,16 +26,14 @@ const AllocationPage = () => {
 
   const fetchData = async () => {
     try {
-      const [allocRes, assetRes, empRes, deptRes] = await Promise.all([
+      const [allocRes, assetRes, empRes] = await Promise.all([
         allocationService.getAllAllocations(),
         assetService.getAllAssets({ status: 'AVAILABLE', size: 100 }),
-        employeeService.getAllEmployees(),
-        departmentService.getAllDepartments()
+        employeeService.getAllEmployees()
       ]);
       setAllocations(allocRes.data || []);
       setAssets(assetRes.data?.content || []);
       setEmployees(empRes.data?.content || []);
-      setDepartments(deptRes.data?.content || []);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch allocations data');
@@ -57,19 +51,24 @@ const AllocationPage = () => {
       alert("Please select an asset.");
       return;
     }
+    if (!formData.employeeId) {
+      alert("Please select an employee.");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        allocatedByUserId: user?.id,
-        employeeId: formData.employeeId ? parseInt(formData.employeeId) : null,
-        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
-        assetId: parseInt(formData.assetId)
+        assetId: parseInt(formData.assetId, 10),
+        employeeId: parseInt(formData.employeeId, 10),
+        allocatedByUserId: user?.id || user?.userId || 1,
+        allocationDate: formData.allocationDate || null,
+        expectedReturnDate: formData.expectedReturnDate || null,
+        notes: formData.notes || null
       };
       
       await allocationService.createAllocation(payload);
       setOpenModal(false);
-      setFormData({ assetId: '', employeeId: '', departmentId: '', allocationDate: '', expectedReturnDate: '', notes: '' });
+      setFormData({ assetId: '', employeeId: '', allocationDate: '', expectedReturnDate: '', notes: '' });
       fetchData();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to create allocation');
@@ -166,29 +165,14 @@ const AllocationPage = () => {
 
           <TextField 
             select 
+            required
             label="Assign to Employee (by Email)" 
             fullWidth 
             value={formData.employeeId} 
             onChange={(e) => setFormData({...formData, employeeId: e.target.value})} 
-            disabled={!!formData.departmentId}
           >
-            <MenuItem value=""><em>None</em></MenuItem>
             {employees.map((e) => (
               <MenuItem key={e.id} value={e.id}>{e.email} ({e.fullName})</MenuItem>
-            ))}
-          </TextField>
-
-          <TextField 
-            select 
-            label="Assign to Department (Optional)" 
-            fullWidth 
-            value={formData.departmentId} 
-            onChange={(e) => setFormData({...formData, departmentId: e.target.value})} 
-            disabled={!!formData.employeeId}
-          >
-            <MenuItem value=""><em>None</em></MenuItem>
-            {departments.map((d) => (
-              <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
             ))}
           </TextField>
 

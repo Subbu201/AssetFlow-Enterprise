@@ -62,6 +62,8 @@ public class Asset extends BaseEntity {
 
     private Long registeredByUserId;
 
+    private Integer quantity;
+
     @Version
     private Long version;
 
@@ -69,6 +71,9 @@ public class Asset extends BaseEntity {
     private void prePersist() {
         if (status == null) {
             status = AssetStatus.AVAILABLE;
+        }
+        if (quantity == null) {
+            quantity = 1;
         }
     }
 }

@@ -28,7 +28,8 @@ const AssetCreatePage = () => {
     sharedBookable: false,
     manufacturer: '',
     model: '',
-    notes: ''
+    notes: '',
+    quantity: 1
   });
 
   useEffect(() => {
@@ -68,6 +69,8 @@ const AssetCreatePage = () => {
       if (!payload.categoryId) throw new Error("Category is required");
       if (!payload.name) throw new Error("Asset name is required");
       if (payload.acquisitionCost) payload.acquisitionCost = parseFloat(payload.acquisitionCost);
+      if (payload.quantity) payload.quantity = parseInt(payload.quantity, 10);
+      if (payload.departmentId === "") payload.departmentId = null;
       payload.registeredByUserId = user?.id || user?.userId;
       
       await assetService.createAsset(payload);
@@ -124,6 +127,9 @@ const AssetCreatePage = () => {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Condition" name="condition" value={formData.condition} onChange={handleChange} fullWidth />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleChange} fullWidth />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <FormControlLabel

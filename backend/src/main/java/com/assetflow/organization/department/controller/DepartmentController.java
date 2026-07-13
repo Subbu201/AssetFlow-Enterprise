@@ -14,13 +14,14 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/departments")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'ASSET_MANAGER')")
 @RequiredArgsConstructor
 public class DepartmentController {
 
     private final DepartmentService departmentService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DepartmentResponse>> createDepartment(@Valid @RequestBody CreateDepartmentRequest request) {
         DepartmentResponse response = departmentService.createDepartment(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Department created successfully", response));
@@ -42,6 +43,7 @@ public class DepartmentController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(
             @PathVariable Long id, 
             @Valid @RequestBody UpdateDepartmentRequest request) {
@@ -50,6 +52,7 @@ public class DepartmentController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartmentStatus(
             @PathVariable Long id, 
             @Valid @RequestBody DepartmentStatusRequest request) {

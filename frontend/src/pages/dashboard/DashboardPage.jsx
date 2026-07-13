@@ -7,12 +7,16 @@ import BuildIcon from '@mui/icons-material/Build';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import KpiCard from '../../components/dashboard/KpiCard';
 import dashboardService from '../../services/dashboardService';
+import { useAuth } from '../../hooks/useAuth';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const isManagerOrAdmin = ['ADMIN', 'ASSET_MANAGER'].includes(user?.role);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -40,10 +44,12 @@ const DashboardPage = () => {
         <Typography variant="h4" color="textPrimary">
           Dashboard
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="contained" color="primary" onClick={() => navigate('/assets/create')}>Register Asset</Button>
-          <Button variant="outlined" color="primary" onClick={() => navigate('/allocation')}>Allocate Asset</Button>
-        </Box>
+        {isManagerOrAdmin && (
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="contained" color="primary" onClick={() => navigate('/assets/create')}>Register Asset</Button>
+            <Button variant="outlined" color="primary" onClick={() => navigate('/allocation')}>Allocate Asset</Button>
+          </Box>
+        )}
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>

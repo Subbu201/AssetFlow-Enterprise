@@ -50,6 +50,26 @@ public class AssetCategoryService {
         return mapToResponse(category);
     }
 
+    @Transactional
+    public CategoryResponse updateCategory(Long id, CreateCategoryRequest request) {
+        AssetCategory category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        if (!category.getName().equalsIgnoreCase(request.getName()) && categoryRepository.existsByName(request.getName())) {
+            throw new ConflictException("Category name already exists");
+        }
+        if (!category.getCode().equalsIgnoreCase(request.getCode()) && categoryRepository.existsByCode(request.getCode())) {
+            throw new ConflictException("Category code already exists");
+        }
+
+        category.setName(request.getName());
+        category.setCode(request.getCode());
+        category.setDescription(request.getDescription());
+        category.setWarrantyPeriodMonths(request.getWarrantyPeriodMonths());
+
+        return mapToResponse(categoryRepository.save(category));
+    }
+
     private CategoryResponse mapToResponse(AssetCategory category) {
         return CategoryResponse.builder()
                 .id(category.getId())

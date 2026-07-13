@@ -4,13 +4,17 @@ import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import assetService from '../../services/assetService';
 import categoryService from '../../services/categoryService';
+import { useAuth } from '../../hooks/useAuth';
 
 const AssetListPage = () => {
+  const { user } = useAuth();
   const [assets, setAssets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const isManagerOrAdmin = ['ADMIN', 'ASSET_MANAGER'].includes(user?.role);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,9 +58,11 @@ const AssetListPage = () => {
         <Typography variant="h4" color="textPrimary">
           Asset Inventory
         </Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/assets/create')}>
-          Register New Asset
-        </Button>
+        {isManagerOrAdmin && (
+          <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/assets/create')}>
+            Register New Asset
+          </Button>
+        )}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

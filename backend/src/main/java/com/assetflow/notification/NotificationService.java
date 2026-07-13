@@ -17,9 +17,11 @@ import java.util.stream.Collectors;
 public class NotificationService {
 
     private final NotificationRepository repository;
+    private final com.assetflow.auth.repository.UserRepository userRepository;
 
-    public NotificationService(NotificationRepository repository) {
+    public NotificationService(NotificationRepository repository, com.assetflow.auth.repository.UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -109,11 +111,17 @@ public class NotificationService {
             throw new ForbiddenException("Authentication required");
         }
         Object principal = authentication.getPrincipal();
+        if (principal instanceof com.assetflow.security.jwt.CustomUserDetails customUserDetails) {
+            return customUserDetails.getId();
+        }
         if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+            String username = userDetails.getUsername();
             try {
-                return Long.parseLong(userDetails.getUsername());
+                return Long.parseLong(username);
             } catch (NumberFormatException e) {
-                throw new ForbiddenException("Invalid authentication principal");
+                return userRepository.findByEmailIgnoreCase(username)
+                        .map(com.assetflow.auth.entity.UserAccount::getId)
+                        .orElseThrow(() -> new ForbiddenException("User not found: " + username));
             }
         }
         throw new ForbiddenException("Invalid authentication principal");

@@ -45,4 +45,6 @@ public class CreateAssetRequest {
     private String notes;
 
     private Long registeredByUserId;
+
+    private Integer quantity;
 }

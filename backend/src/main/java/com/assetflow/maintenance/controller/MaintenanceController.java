@@ -27,6 +27,7 @@ public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
     private final MaintenanceAttachmentStorage attachmentStorage;
+    private final com.assetflow.auth.repository.UserRepository userRepository;
 
     // ------------------------------------------------------------------
     // Create maintenance request
@@ -217,10 +218,16 @@ public class MaintenanceController {
     // ------------------------------------------------------------------
 
     private Long extractUserId(UserDetails userDetails) {
+        if (userDetails instanceof com.assetflow.security.jwt.CustomUserDetails customUserDetails) {
+            return customUserDetails.getId();
+        }
+        String username = userDetails.getUsername();
         try {
-            return Long.parseLong(userDetails.getUsername());
+            return Long.parseLong(username);
         } catch (NumberFormatException e) {
-            return -1L;
+            return userRepository.findByEmailIgnoreCase(username)
+                    .map(com.assetflow.auth.entity.UserAccount::getId)
+                    .orElse(-1L);
         }
     }
 }

@@ -28,6 +28,7 @@ public class AssetResponse {
     private LocalDate warrantyExpiryDate;
     private String notes;
     private Long registeredByUserId;
+    private Integer quantity;
     private String registeredByUserEmail;
     private String registeredByUserName;
     private Long version;

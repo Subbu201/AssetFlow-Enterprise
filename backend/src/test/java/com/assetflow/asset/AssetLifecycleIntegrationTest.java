@@ -28,14 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-@TestPropertySource(properties = {
-        "spring.jpa.hibernate.ddl-auto=update",
-        "spring.test.database.replace=none",
-        "spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver",
-        "spring.datasource.url=jdbc:mysql://localhost:3306/assetflow?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
-        "spring.datasource.username=root",
-        "spring.datasource.password=UVADARAN-45"
-})
+@org.springframework.test.context.ActiveProfiles("test")
 @Transactional
 class AssetLifecycleIntegrationTest {
 

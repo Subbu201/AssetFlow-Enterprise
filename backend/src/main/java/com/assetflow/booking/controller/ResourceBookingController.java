@@ -30,6 +30,7 @@ public class ResourceBookingController {
 
     private final ResourceBookingService bookingService;
     private final BookingSlotSuggestionService suggestionService;
+    private final com.assetflow.auth.repository.UserRepository userRepository;
 
     // ------------------------------------------------------------------
     // Create booking
@@ -197,13 +198,16 @@ public class ResourceBookingController {
     // ------------------------------------------------------------------
 
     private Long extractUserId(UserDetails userDetails) {
-        // The username is expected to be the user ID (set by Member 1's JWT filter)
+        if (userDetails instanceof com.assetflow.security.jwt.CustomUserDetails customUserDetails) {
+            return customUserDetails.getId();
+        }
+        String username = userDetails.getUsername();
         try {
-            return Long.parseLong(userDetails.getUsername());
+            return Long.parseLong(username);
         } catch (NumberFormatException e) {
-            // Fallback: if username is an email/name, return -1 for now.
-            // Will be resolved when Member 1 provides a proper principal object.
-            return -1L;
+            return userRepository.findByEmailIgnoreCase(username)
+                    .map(com.assetflow.auth.entity.UserAccount::getId)
+                    .orElse(-1L);
         }
     }
 

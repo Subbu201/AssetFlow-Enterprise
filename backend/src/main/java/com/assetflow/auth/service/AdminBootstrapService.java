@@ -25,6 +25,7 @@ public class AdminBootstrapService {
     private final com.assetflow.organization.department.repository.DepartmentRepository departmentRepository;
     private final com.assetflow.organization.category.repository.AssetCategoryRepository categoryRepository;
     private final com.assetflow.organization.employee.repository.EmployeeProfileRepository employeeRepository;
+    private final com.assetflow.notification.NotificationRepository notificationRepository;
 
     @Value("${app.bootstrap.admin.enabled:false}")
     private boolean bootstrapAdminEnabled;
@@ -43,11 +44,12 @@ public class AdminBootstrapService {
     public void bootstrapAdmin() {
         // 1. Correct corrupted Admin name if needed
         java.util.Optional<UserAccount> adminOpt = userRepository.findByEmailIgnoreCase(bootstrapAdminEmail.toLowerCase());
+        UserAccount adminUser = null;
         if (adminOpt.isPresent()) {
-            UserAccount admin = adminOpt.get();
-            if (admin.getFullName().contains("spring.mail.port")) {
-                admin.setFullName("AssetFlow Admin");
-                userRepository.save(admin);
+            adminUser = adminOpt.get();
+            if (adminUser.getFullName().contains("spring.mail.port")) {
+                adminUser.setFullName("AssetFlow Admin");
+                userRepository.save(adminUser);
                 log.info("Corrected corrupted ADMIN full name in database.");
             }
         } else {
@@ -60,9 +62,21 @@ public class AdminBootstrapService {
                         .role(Role.ADMIN)
                         .status(RecordStatus.ACTIVE)
                         .build();
-                userRepository.save(admin);
+                adminUser = userRepository.save(admin);
                 log.info("Successfully bootstrapped initial ADMIN account: {}", bootstrapAdminEmail);
             }
+        }
+
+        if (adminUser != null && !employeeRepository.existsByUserAccountId(adminUser.getId())) {
+            com.assetflow.organization.employee.entity.EmployeeProfile profile = com.assetflow.organization.employee.entity.EmployeeProfile.builder()
+                    .userAccountId(adminUser.getId())
+                    .employeeCode("EMP-ADMIN")
+                    .designation("Administrator")
+                    .joiningDate(java.time.LocalDate.now())
+                    .status(RecordStatus.ACTIVE)
+                    .build();
+            employeeRepository.save(profile);
+            log.info("Created missing EmployeeProfile for ADMIN user.");
         }
 
         // 2. Bootstrap Departments
@@ -151,5 +165,56 @@ public class AdminBootstrapService {
                 }
             }
         }
+
+        // 5. Bootstrap Notifications for Admin & Employee
+        userRepository.findByEmailIgnoreCase(bootstrapAdminEmail.toLowerCase()).ifPresent(admin -> {
+            if (notificationRepository.countByRecipientUserIdAndReadFalse(admin.getId()) == 0) {
+                com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
+                notif1.setRecipientUserId(admin.getId());
+                notif1.setType(com.assetflow.notification.NotificationType.OVERDUE_RETURN);
+                notif1.setTitle("URGENT: Return Overdue");
+                notif1.setMessage("Critical: 3 asset allocations are overdue for return. Please review and send return reminders.");
+                notif1.setReferenceType("OVERDUE");
+                notif1.setReferenceId(1L);
+                notif1.setRead(false);
+                notificationRepository.save(notif1);
+
+                com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
+                notif2.setRecipientUserId(admin.getId());
+                notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
+                notif2.setTitle("General Notice");
+                notif2.setMessage("Welcome to AssetFlow Enterprise! Please complete the category mappings for the new quarter.");
+                notif2.setReferenceType("SYSTEM");
+                notif2.setReferenceId(2L);
+                notif2.setRead(false);
+                notificationRepository.save(notif2);
+                log.info("Bootstrapped notifications for ADMIN.");
+            }
+        });
+
+        userRepository.findByEmailIgnoreCase("employee@assetflow.com").ifPresent(emp -> {
+            if (notificationRepository.countByRecipientUserIdAndReadFalse(emp.getId()) == 0) {
+                com.assetflow.notification.Notification notif1 = new com.assetflow.notification.Notification();
+                notif1.setRecipientUserId(emp.getId());
+                notif1.setType(com.assetflow.notification.NotificationType.BOOKING_REMINDER);
+                notif1.setTitle("URGENT: Warranty Warning");
+                notif1.setMessage("Your allocated Dell Laptop (serial: CN-0192) has an expiring warranty next week.");
+                notif1.setReferenceType("WARRANTY");
+                notif1.setReferenceId(3L);
+                notif1.setRead(false);
+                notificationRepository.save(notif1);
+
+                com.assetflow.notification.Notification notif2 = new com.assetflow.notification.Notification();
+                notif2.setRecipientUserId(emp.getId());
+                notif2.setType(com.assetflow.notification.NotificationType.ASSET_ASSIGNED);
+                notif2.setTitle("Welcome to AssetFlow");
+                notif2.setMessage("Your employee profile has been fully activated. View your assigned equipment in the profile page.");
+                notif2.setReferenceType("SYSTEM");
+                notif2.setReferenceId(4L);
+                notif2.setRead(false);
+                notificationRepository.save(notif2);
+                log.info("Bootstrapped notifications for EMPLOYEE.");
+            }
+        });
     }
 }

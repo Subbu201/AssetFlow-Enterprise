@@ -10,6 +10,7 @@ const CategoryPage = () => {
   
   const [openModal, setOpenModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', code: '', description: '', warrantyPeriodMonths: '' });
 
   const fetchCategories = async () => {
@@ -28,18 +29,40 @@ const CategoryPage = () => {
     fetchCategories();
   }, []);
 
-  const handleCreate = async () => {
+  const handleEditClick = (cat) => {
+    setFormData({ 
+      name: cat.name, 
+      code: cat.code, 
+      description: cat.description || '', 
+      warrantyPeriodMonths: cat.warrantyPeriodMonths ? cat.warrantyPeriodMonths.toString() : '' 
+    });
+    setEditingId(cat.id);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setFormData({ name: '', code: '', description: '', warrantyPeriodMonths: '' });
+    setEditingId(null);
+  };
+
+  const handleSave = async () => {
     setSubmitting(true);
     try {
-      await categoryService.createCategory({
+      const payload = {
         ...formData,
         warrantyPeriodMonths: formData.warrantyPeriodMonths ? parseInt(formData.warrantyPeriodMonths) : null
-      });
-      setOpenModal(false);
-      setFormData({ name: '', code: '', description: '', warrantyPeriodMonths: '' });
+      };
+      
+      if (editingId) {
+        await categoryService.updateCategory(editingId, payload);
+      } else {
+        await categoryService.createCategory(payload);
+      }
+      handleCloseModal();
       fetchCategories();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create category');
+      alert(err.response?.data?.message || 'Failed to save category');
     } finally {
       setSubmitting(false);
     }
@@ -98,7 +121,7 @@ const CategoryPage = () => {
                   />
                 </TableCell>
                 <TableCell align="right">
-                  <Button size="small" color="primary">Edit</Button>
+                  <Button size="small" color="primary" onClick={() => handleEditClick(cat)}>Edit</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -106,8 +129,8 @@ const CategoryPage = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create Category</DialogTitle>
+      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Edit Category' : 'Create Category'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField 
             label="Name" 
@@ -137,8 +160,8 @@ const CategoryPage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleCreate} disabled={submitting}>
+          <Button onClick={handleCloseModal}>Cancel</Button>
+          <Button variant="contained" color="primary" onClick={handleSave} disabled={submitting}>
             {submitting ? <CircularProgress size={24} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>

@@ -22,4 +22,5 @@ public class UpdateAssetRequest {
     private String model;
     private LocalDate warrantyExpiryDate;
     private String notes;
+    private Integer quantity;
 }

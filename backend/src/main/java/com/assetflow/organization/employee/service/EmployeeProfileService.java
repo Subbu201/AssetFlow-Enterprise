@@ -47,18 +47,18 @@ public class EmployeeProfileService {
         UserAccount user = userRepository.findById(profile.getUserAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("User account not found"));
 
-        if (request.getRole() == Role.ADMIN) {
-            throw new BadRequestException("Cannot assign ADMIN role through API");
-        }
-
-        if (request.getRole() == Role.DEPARTMENT_HEAD && profile.getDepartmentId() == null) {
-            throw new BadRequestException("DEPARTMENT_HEAD must belong to a department");
-        }
+        // No restrictions on roles when admin changes them
 
         // If removing DEPARTMENT_HEAD, should we clear department head ref? Yes, handled elsewhere or here
         user.setRole(request.getRole());
         userRepository.save(user);
 
+        return mapToResponse(profile);
+    }
+
+    public EmployeeProfileResponse getProfileByUserAccountId(Long userAccountId) {
+        EmployeeProfile profile = employeeRepository.findByUserAccountId(userAccountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee profile not found"));
         return mapToResponse(profile);
     }
 

@@ -41,4 +41,12 @@ public class AssetCategoryController {
         CategoryResponse response = categoryService.getCategory(id);
         return ResponseEntity.ok(ApiResponse.success("Category fetched successfully", response));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateCategoryRequest request) {
+        CategoryResponse response = categoryService.updateCategory(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Category updated successfully", response));
+    }
 }

@@ -8,6 +8,10 @@ const employeeService = {
   updateRole: async (id, role) => {
     const response = await axiosInstance.patch(`/admin/employees/${id}/role`, { role });
     return response.data;
+  },
+  getMyProfile: async () => {
+    const response = await axiosInstance.get('/employees/me');
+    return response.data;
   }
 };
 

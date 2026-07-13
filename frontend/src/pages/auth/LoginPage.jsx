@@ -86,12 +86,24 @@ const LoginPage = () => {
           </Button>
         </form>
 
-        <Box sx={{ textAlign: 'center', mt: 2 }}>
+        <Box sx={{ textAlign: 'center', mt: 1 }}>
           <Typography variant="body2" color="textSecondary">
             Don't have an account?{' '}
             <Link component={RouterLink} to="/signup" color="primary.light" sx={{ fontWeight: 600 }}>
               Sign up
             </Link>
+          </Typography>
+        </Box>
+
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(0, 229, 255, 0.04)', border: '1px dashed rgba(0, 229, 255, 0.2)', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1, fontWeight: 600 }}>
+            DEMO ADMIN CREDENTIALS
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#00e5ff', fontFamily: 'monospace' }}>
+            Email: admin@assetflow.com
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#00e5ff', fontFamily: 'monospace' }}>
+            Password: Admin@123
           </Typography>
         </Box>
       </Card>

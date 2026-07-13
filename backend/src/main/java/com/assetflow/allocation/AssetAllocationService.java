@@ -14,6 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.assetflow.organization.employee.repository.EmployeeProfileRepository;
+import com.assetflow.notification.NotificationService;
+import com.assetflow.notification.dto.CreateNotificationRequest;
+import com.assetflow.notification.NotificationType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,16 +29,17 @@ public class AssetAllocationService {
     private final AssetAllocationRepository allocationRepository;
     private final AssetRepository assetRepository;
     private final AssetHistoryService assetHistoryService;
+    private final EmployeeProfileRepository employeeProfileRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public AllocationResponse createAllocation(CreateAllocationRequest request) {
         Asset asset = assetRepository.findById(request.getAssetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
-        if (allocationRepository.existsByAssetIdAndStatus(request.getAssetId(), "ACTIVE")) {
-            throw new ConflictException("Asset is already allocated");
-        }
-        if (asset.getStatus() != AssetStatus.AVAILABLE) {
-            throw new ConflictException("Asset is not available for allocation");
+        
+        int qty = asset.getQuantity() != null ? asset.getQuantity() : 1;
+        if (qty <= 0 || asset.getStatus() != AssetStatus.AVAILABLE) {
+            throw new ConflictException("Asset is already allocated or not available");
         }
         if ((request.getEmployeeId() == null && request.getDepartmentId() == null)
                 || (request.getEmployeeId() != null && request.getDepartmentId() != null)) {
@@ -57,10 +62,32 @@ public class AssetAllocationService {
         allocation.setNotes(request.getNotes());
         AssetAllocation saved = allocationRepository.save(allocation);
 
-        asset.setStatus(AssetStatus.ALLOCATED);
+        int newQty = qty - 1;
+        asset.setQuantity(newQty);
+        if (newQty == 0) {
+            asset.setStatus(AssetStatus.ALLOCATED);
+        }
         assetRepository.save(asset);
         assetHistoryService.recordAllocation(asset.getId(), request.getAllocatedByUserId(), "Allocation created",
                 "Asset allocated");
+
+        if (request.getEmployeeId() != null) {
+            employeeProfileRepository.findById(request.getEmployeeId()).ifPresent(profile -> {
+                CreateNotificationRequest notificationRequest = new CreateNotificationRequest();
+                notificationRequest.setRecipientUserId(profile.getUserAccountId());
+                notificationRequest.setType(NotificationType.ASSET_ASSIGNED);
+                notificationRequest.setTitle("Asset Allocated");
+                notificationRequest.setMessage("Asset " + asset.getName() + " (" + asset.getAssetTag() + ") has been allocated to you.");
+                notificationRequest.setReferenceType("ALLOCATION");
+                notificationRequest.setReferenceId(saved.getId());
+                try {
+                    notificationService.createNotification(notificationRequest);
+                } catch (Exception ex) {
+                    // Log exception, do not fail allocation transaction
+                }
+            });
+        }
+
         return toResponse(saved);
     }
 

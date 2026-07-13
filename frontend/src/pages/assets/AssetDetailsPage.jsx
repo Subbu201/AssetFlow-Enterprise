@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Card, Grid, CircularProgress, Alert, Button, Chip } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import assetService from '../../services/assetService';
+import { useAuth } from '../../hooks/useAuth';
 
 const AssetDetailsPage = () => {
+  const { user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const isManagerOrAdmin = ['ADMIN', 'ASSET_MANAGER'].includes(user?.role);
   const [asset, setAsset] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,7 +38,9 @@ const AssetDetailsPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4 }}>
         <Typography variant="h4" color="textPrimary">Asset Details: {asset.assetTag}</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="contained" color="primary" onClick={() => navigate(`/assets/edit/${id}`)}>Edit Asset</Button>
+          {isManagerOrAdmin && (
+            <Button variant="contained" color="primary" onClick={() => navigate(`/assets/edit/${id}`)}>Edit Asset</Button>
+          )}
           <Button variant="outlined" onClick={() => navigate('/assets')}>Back to List</Button>
         </Box>
       </Box>
@@ -47,6 +53,10 @@ const AssetDetailsPage = () => {
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="textSecondary">Status</Typography>
             <Chip label={asset.status} size="small" color="primary" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="subtitle2" color="textSecondary">Available Quantity</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>{asset.quantity !== undefined ? asset.quantity : 1}</Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography variant="subtitle2" color="textSecondary">Serial Number</Typography>

@@ -1,16 +1,33 @@
-import React from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, Badge } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import notificationService from '../../services/notificationService';
 
 const drawerWidth = 260;
 
 const Topbar = ({ handleDrawerToggle }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await notificationService.getUnreadCount();
+        setUnreadCount(res.data || 0);
+      } catch (err) {
+        console.error('Error fetching unread count:', err);
+      }
+    };
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000); // refresh every 15s
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -49,8 +66,10 @@ const Topbar = ({ handleDrawerToggle }) => {
         </IconButton>
         <Box sx={{ flexGrow: 1 }} />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton color="inherit" sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.1)', color: 'primary.main' } }}>
-            <NotificationsIcon />
+          <IconButton color="inherit" onClick={() => navigate('/notifications')} sx={{ transition: 'all 0.2s', '&:hover': { transform: 'scale(1.1)', color: 'primary.main' } }}>
+            <Badge badgeContent={unreadCount} color="error">
+              <NotificationsIcon />
+            </Badge>
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleMenu}>
             <Box sx={{ mr: 2, display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>

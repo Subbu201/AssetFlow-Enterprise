@@ -10,6 +10,7 @@ const DepartmentPage = () => {
   
   const [openModal, setOpenModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', code: '', description: '' });
 
   const fetchDepartments = async () => {
@@ -28,15 +29,30 @@ const DepartmentPage = () => {
     fetchDepartments();
   }, []);
 
-  const handleCreate = async () => {
+  const handleEditClick = (dept) => {
+    setFormData({ name: dept.name, code: dept.code, description: dept.description || '' });
+    setEditingId(dept.id);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setFormData({ name: '', code: '', description: '' });
+    setEditingId(null);
+  };
+
+  const handleSave = async () => {
     setSubmitting(true);
     try {
-      await departmentService.createDepartment(formData);
-      setOpenModal(false);
-      setFormData({ name: '', code: '', description: '' });
+      if (editingId) {
+        await departmentService.updateDepartment(editingId, formData);
+      } else {
+        await departmentService.createDepartment(formData);
+      }
+      handleCloseModal();
       fetchDepartments();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create department');
+      alert(err.response?.data?.message || 'Failed to save department');
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +109,7 @@ const DepartmentPage = () => {
                   />
                 </TableCell>
                 <TableCell align="right">
-                  <Button size="small" color="primary">Edit</Button>
+                  <Button size="small" color="primary" onClick={() => handleEditClick(dept)}>Edit</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -101,8 +117,8 @@ const DepartmentPage = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create Department</DialogTitle>
+      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Edit Department' : 'Create Department'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField 
             label="Name" 
@@ -125,8 +141,8 @@ const DepartmentPage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handleCreate} disabled={submitting}>
+          <Button onClick={handleCloseModal}>Cancel</Button>
+          <Button variant="contained" color="primary" onClick={handleSave} disabled={submitting}>
             {submitting ? <CircularProgress size={24} color="inherit" /> : 'Save'}
           </Button>
         </DialogActions>

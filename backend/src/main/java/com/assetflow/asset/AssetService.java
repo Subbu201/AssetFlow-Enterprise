@@ -60,6 +60,7 @@ public class AssetService {
         asset.setWarrantyExpiryDate(request.getWarrantyExpiryDate());
         asset.setNotes(request.getNotes());
         asset.setRegisteredByUserId(request.getRegisteredByUserId());
+        asset.setQuantity(request.getQuantity() != null ? request.getQuantity() : 1);
         asset.setAssetTag(generateAssetTag());
 
         Asset saved = assetRepository.save(asset);
@@ -139,6 +140,12 @@ public class AssetService {
             asset.setWarrantyExpiryDate(request.getWarrantyExpiryDate());
         if (request.getNotes() != null)
             asset.setNotes(request.getNotes());
+        if (request.getQuantity() != null) {
+            if (request.getQuantity() < 0) {
+                throw new BadRequestException("Quantity cannot be negative");
+            }
+            asset.setQuantity(request.getQuantity());
+        }
         return assetRepository.save(asset);
     }
 
@@ -216,6 +223,7 @@ public class AssetService {
         response.setWarrantyExpiryDate(asset.getWarrantyExpiryDate());
         response.setNotes(asset.getNotes());
         response.setRegisteredByUserId(asset.getRegisteredByUserId());
+        response.setQuantity(asset.getQuantity() != null ? asset.getQuantity() : 1);
         if (asset.getRegisteredByUserId() != null) {
             userRepository.findById(asset.getRegisteredByUserId()).ifPresent(user -> {
                 response.setRegisteredByUserEmail(user.getEmail());

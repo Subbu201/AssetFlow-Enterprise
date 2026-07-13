@@ -27,7 +27,8 @@ const AssetEditPage = () => {
     sharedBookable: false,
     manufacturer: '',
     model: '',
-    notes: ''
+    notes: '',
+    quantity: 1
   });
 
   useEffect(() => {
@@ -52,7 +53,8 @@ const AssetEditPage = () => {
           sharedBookable: asset.sharedBookable || false,
           manufacturer: asset.manufacturer || '',
           model: asset.model || '',
-          notes: asset.notes || ''
+          notes: asset.notes || '',
+          quantity: asset.quantity || 1
         });
         
         setCategories(catRes.data?.content || []);
@@ -85,6 +87,8 @@ const AssetEditPage = () => {
       if (!payload.categoryId) throw new Error("Category is required");
       if (!payload.name) throw new Error("Asset name is required");
       if (payload.acquisitionCost) payload.acquisitionCost = parseFloat(payload.acquisitionCost);
+      if (payload.quantity) payload.quantity = parseInt(payload.quantity, 10);
+      if (payload.departmentId === "") payload.departmentId = null;
       
       await assetService.updateAsset(id, payload);
       navigate(`/assets/${id}`);
@@ -140,6 +144,9 @@ const AssetEditPage = () => {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Condition" name="condition" value={formData.condition} onChange={handleChange} fullWidth />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField label="Quantity" name="quantity" type="number" value={formData.quantity} onChange={handleChange} fullWidth />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
